@@ -269,6 +269,17 @@ h1 {
     background-color: #fee2e2;
 }
 
+/* Style cho nút tích xanh ✓ ở cột Hoàn thành dùng để xóa công việc */
+.btn-delete-task.btn-done-check {
+    color: #059669;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.btn-delete-task.btn-done-check:hover {
+    background-color: #d1fae5;
+}
+
 /* Dấu biểu thị trạng thái (Status indicator - ở góc trên bên phải) */
 .status-indicator {
     display: inline-flex;
@@ -305,6 +316,13 @@ h1 {
 .status-indicator.status-done {
     background-color: #d1fae5;
     color: #059669;
+    cursor: pointer;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.status-indicator.status-done:hover {
+    background-color: #a7f3d0;
+    transform: scale(1.15);
 }
 
 .status-indicator.status-done::before {

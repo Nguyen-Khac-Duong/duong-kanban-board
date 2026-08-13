@@ -96,9 +96,9 @@ class KanbanBoard {
         const statusClass = task.status === TaskStatus.TODO ? "status-todo" :
             task.status === TaskStatus.IN_PROGRESS ? "status-doing" : "status-done";
 
-        // Gợi ý tooltip khi di chuột qua dấu tròn trạng thái
+        // Gợi ý tooltip khi di chuột qua dấu tròn trạng thái (cột DONE gợi ý click để xóa)
         const statusTitle = task.status === TaskStatus.TODO ? "Trạng thái: Cần làm" :
-            task.status === TaskStatus.IN_PROGRESS ? "Trạng thái: Đang làm" : "Trạng thái: Hoàn thành";
+            task.status === TaskStatus.IN_PROGRESS ? "Trạng thái: Đang làm" : "Click để xóa công việc đã hoàn thành";
 
         // Trả về chuỗi HTML chứa đầy đủ thông tin của công việc
         return `
@@ -109,13 +109,13 @@ class KanbanBoard {
                         <!-- Badge màu hiển thị độ ưu tiên tương ứng -->
                         <span class="badge ${priorityClass}">${PriorityLabels[task.priority]}</span>
                     </div>
-                    <!-- Dấu chấm trạng thái hiển thị ở góc trên bên phải tiêu đề -->
+                    <!-- Dấu tích xanh ở góc trên bên phải tiêu đề: ở cột HOÀN THÀNH click vào sẽ xóa công việc -->
                     <span class="status-indicator ${statusClass}" title="${statusTitle}"></span>
                 </div>
                 <p class="card-desc">${task.description || "Không có mô tả"}</p>
                 <div class="card-footer">
                     <small>${task.createdAt}</small>
-                    <!-- Nút xóa hiển thị ở góc phải dưới. Nếu công việc đã DONE thì ẩn nút đi bằng visibility: hidden để giữ vững layout -->
+                    <!-- Nút xóa ✕ ở footer. Nếu công việc đã DONE thì ẩn nút đi để dùng duy nhất dấu tích xanh ở header, tránh bị trùng -->
                     <button class="btn-delete-task" data-id="${task.id}" title="Xóa công việc" style="${task.status === TaskStatus.DONE ? 'visibility: hidden;' : ''}">✕</button>
                 </div>
             </div>
@@ -204,17 +204,20 @@ btnAddTask.addEventListener("click", () => {
     inputPriority.value = Priority.MEDIUM; // Reset độ ưu tiên về mặc định là Trung bình
 });
 
-// 2. Xử lý sự kiện khi người dùng click vào nút xóa "✕" của một thẻ công việc bất kỳ
+// 2. Xử lý sự kiện khi người dùng click vào nút xóa "✕" hoặc dấu tích xanh "✓" của công việc
 // Sử dụng cơ chế Event Delegation (ủy quyền sự kiện) gán sự kiện cho thẻ cha kanbanBoard
 kanbanBoard.addEventListener("click", (e: Event) => {
     const target = e.target as HTMLElement; // Lấy ra phần tử thực tế bị click trúng
 
-    // Kiểm tra nếu phần tử bị click trúng chứa class "btn-delete-task"
-    if (target.classList.contains("btn-delete-task")) {
-        const id = Number(target.getAttribute("data-id")); // Lấy ID của công việc từ thuộc tính data-id
-        if (!isNaN(id)) {
-            board.deleteTask(id); // Gọi hàm xóa công việc khỏi danh sách
-            renderBoard(); // Vẽ lại giao diện mới sau khi xóa
+    // Nếu click nút btn-delete-task (bao gồm cả nút ✓ ở cột Hoàn thành) hoặc dấu tích xanh ở header
+    if (target.classList.contains("btn-delete-task") || target.classList.contains("status-done")) {
+        const card = target.closest(".task-card");
+        if (card) {
+            const id = Number(card.getAttribute("data-id"));
+            if (!isNaN(id)) {
+                board.deleteTask(id); // Gọi hàm xóa công việc khỏi danh sách
+                renderBoard(); // Vẽ lại giao diện mới sau khi xóa
+            }
         }
     }
 });
