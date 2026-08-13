@@ -139,6 +139,26 @@ h1 {
     touch-action: pan-y; /* Cho phép cuộn dọc bình thường trên di động */
 }
 
+/* Icon tay cầm kéo ⋮⋮ cho thẻ */
+.drag-handle {
+    cursor: grab;
+    color: #94a3b8;
+    font-size: 16px;
+    font-weight: bold;
+    user-select: none;
+    padding-right: 4px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    transition: color 0.15s ease;
+}
+
+.drag-handle:hover,
+.drag-handle:active {
+    color: #4f46e5;
+    cursor: grabbing;
+}
+
 .task-card:active {
     cursor: grabbing;
 }
