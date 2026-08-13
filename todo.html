@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban Board TS - Ngày 1</title>
+    <link rel="stylesheet" href="todo.css">
+</head>
+
+<body>
+    <div class="app-container"></div>
+    <h1>Bảng Quản Lý Công Việc (Kanban)</h1>
+
+    <!-- form nhập công việc mới  -->
+
+    <div class="task-form">
+        <input type="text" id="taskTitle" placeholder="Nội dung công việc">
+        <input type="text" id="taskDesc" placeholder="Mô tả...">
+
+        <select id="taskPriority">
+            <option value="LOW">Độ ưu tiên : Thấp</option>
+            <option value="MEDIUM">Độ ưu tiên : Trung bình</option>
+            <option value="HIGH">Độ ưu tiên : Cao</option>
+        </select>
+
+        <button id="addTaskBtn">Thêm công việc</button>
+    </div>
+
+
+    <div class="kanban-board">
+        <!-- cột 1 :cần làm  -->
+        <div class="column">
+            <div class="column-header col-todo">
+                <h3>...CẦN LÀM</h3>
+                <span id="countTodo" class="task-count">0</span>
+            </div>
+            <div id="colTodo" class="task-list"></div>
+        </div>
+
+        <!-- cột 2: đang làm  -->
+        <div class="column">
+            <div class="column-header col-doing">
+                <h3>... ĐANG LÀM</h3>
+                <span id="countDoing" class="task-count">0</span>
+            </div>
+            <div id="colDoing" class="task-list"></div>
+        </div>
+        <!-- cột 3: hoàn thành  -->
+        <div class="column">
+            <div class="column-header col-done">
+                <h3>... HOÀN THÀNH</h3>
+                <span id="countDone" class="task-count">0</span>
+            </div>
+            <div id="colDone" class="task-list"></div>
+        </div>
+
+    </div>
+    <script src="todo.js"></script>
+</body>
+
+</html>
