@@ -219,29 +219,69 @@ kanbanBoard.addEventListener("click", (e: Event) => {
     }
 });
 
-// 3. Khởi tạo tính năng kéo thả bằng SortableJS hỗ trợ tốt cả PC lẫn Mobile
-declare const Sortable: any; // Khai báo biến toàn cục cho TypeScript
+// 3. Xử lý tính năng Kéo và Thả công việc (Drag and Drop) giữa các cột
+let draggedTaskId: number | null = null; // Biến toàn cục lưu trữ ID của công việc đang được kéo đi
 
+// Sự kiện 3.1: Khi người dùng bắt đầu nhấn giữ chuột kéo một thẻ công việc đi (dragstart)
+kanbanBoard.addEventListener("dragstart", (e: DragEvent) => {
+    // Tìm thẻ .task-card gần nhất chứa phần tử đang kéo
+    const target = (e.target as HTMLElement).closest(".task-card") as HTMLElement;
+    if (target) {
+        draggedTaskId = Number(target.getAttribute("data-id")); // Lưu lại ID của công việc đang được kéo
+        target.classList.add("dragging"); // Thêm class "dragging" để đổi style mờ thẻ đi
+    }
+});
+
+// Sự kiện 3.2: Khi người dùng nhả chuột dừng kéo thẻ công việc (dragend)
+kanbanBoard.addEventListener("dragend", (e: DragEvent) => {
+    const target = (e.target as HTMLElement).closest(".task-card") as HTMLElement;
+    if (target) {
+        target.classList.remove("dragging"); // Xóa bỏ class "dragging" trả lại trạng thái hiển thị rõ nét
+    }
+    // Dọn dẹp, xóa bỏ class hiệu ứng viền nét đứt ở tất cả các cột
+    document.querySelectorAll(".task-list").forEach(list => list.classList.remove("drag-over"));
+});
+
+// Lấy danh sách tất cả các cột có class .column trên giao diện
+const columns = document.querySelectorAll<HTMLElement>(".column");
+
+// Bảng ánh xạ ID của danh sách với Enum trạng thái tương ứng của công việc
 const statusMap: Record<string, TaskStatus> = {
     "colTodo": TaskStatus.TODO,
     "colDoing": TaskStatus.IN_PROGRESS,
     "colDone": TaskStatus.DONE
 };
 
-const sortableOptions = {
-    group: 'kanban', // Cho phép kéo thả phần tử giữa các danh sách cùng nhóm
-    animation: 150,  // Tốc độ animation di chuyển mượt mà (150ms)
-    ghostClass: 'dragging', // Class thêm vào phần tử ảo khi đang kéo để làm mờ
-    onEnd: (evt: any) => {
-        const id = Number(evt.item.getAttribute("data-id"));
-        const newStatus = statusMap[evt.to.id];
-        if (id && newStatus) {
-            board.moveTask(id, newStatus);
-            renderBoard(); // Cập nhật lại giao diện và số lượng đếm
-        }
-    }
-};
+// Đăng ký các sự kiện Drag & Drop trên từng Cột để đảm bảo nhận diện chính xác kể cả khi cuộn trang
+columns.forEach(column => {
+    const list = column.querySelector(".task-list") as HTMLElement;
+    if (!list) return;
 
-new Sortable(colTodo, sortableOptions);
-new Sortable(colDoing, sortableOptions);
-new Sortable(colDone, sortableOptions);
+    // Sự kiện 3.3: Khi rê thẻ đang kéo bay ngang qua cột (dragover)
+    column.addEventListener("dragover", (e: DragEvent) => {
+        e.preventDefault(); // Ngăn chặn hành động mặc định của trình duyệt để cho phép thả (drop) thẻ vào đây
+        list.classList.add("drag-over"); // Hiển thị màu nền nhạt và viền nét đứt màu tím
+    });
+
+    // Sự kiện 3.4: Khi rê thẻ đang kéo ra khỏi phạm vi của cột (dragleave)
+    column.addEventListener("dragleave", (e: DragEvent) => {
+        // Chỉ xóa class viền nét đứt nếu con trỏ chuột thực sự đã đi ra ngoài hoàn toàn khỏi khối cột
+        if (!column.contains(e.relatedTarget as Node)) {
+            list.classList.remove("drag-over");
+        }
+    });
+
+    // Sự kiện 3.5: Khi nhả chuột thả thẻ công việc rơi vào cột (drop)
+    column.addEventListener("drop", (e: DragEvent) => {
+        e.preventDefault();
+        list.classList.remove("drag-over"); // Xóa bỏ viền nét đứt
+        if (draggedTaskId !== null) {
+            const newStatus = statusMap[list.id]; // Tìm kiếm xem cột thả vào có trạng thái tương ứng là gì
+            if (newStatus) {
+                board.moveTask(draggedTaskId, newStatus); // Chuyển đổi trạng thái mới cho công việc trong mảng & localStorage
+                renderBoard(); // Vẽ lại giao diện cột với vị trí công việc mới
+            }
+            draggedTaskId = null; // Reset biến ID công việc đang kéo về null
+        }
+    });
+});
