@@ -197,18 +197,24 @@ h1 {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex: 1;
+    min-width: 0; /* Cho phép flexbox thu nhỏ vừa vặn khung mà không làm vỡ layout */
 }
 
 .card-header h4 {
     font-size: 16px;
     font-weight: 600;
     word-break: break-word;
+    overflow-wrap: anywhere; /* Tự động xuống dòng từ trái sang phải khi chạm viền khung */
+    min-width: 0;
 }
 
 .card-desc {
     font-size: 13px;
     color: #64748b;
     line-height: 1.4;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .card-footer {
@@ -328,4 +334,40 @@ h1 {
 .status-indicator.status-done::before {
     content: "✓";
     font-size: 13px;
+}
+
+/* ==========================================================================
+   RESPONSIVE CSS DÀNH CHO MÀN HÌNH DI ĐỘNG (MOBILE & TABLET)
+   ========================================================================== */
+@media (max-width: 768px) {
+    body {
+        padding: 12px;
+    }
+
+    .task-form {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .task-form input,
+    .task-form select,
+    .task-form button {
+        width: 100% !important;
+        flex: none !important;
+    }
+
+    /* Trên điện thoại, xếp 3 cột theo chiều dọc để các thẻ rộng rãi, chữ tự động xuống dòng từ trái sang phải */
+    .kanban-board {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .column {
+        min-height: auto;
+    }
+
+    .task-list {
+        min-height: 80px;
+        padding-bottom: 20px;
+    }
 }
