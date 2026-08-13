@@ -102,7 +102,7 @@ class KanbanBoard {
 
         // Trả về chuỗi HTML chứa đầy đủ thông tin của công việc
         return `
-        <div class="task-card" data-id="${task.id}" draggable="true">
+        <div class="task-card" data-id="${task.id}">
                 <div class="card-header">
                     <div class="card-header-left">
                         <h4>${task.title}</h4>
@@ -219,69 +219,138 @@ kanbanBoard.addEventListener("click", (e: Event) => {
     }
 });
 
-// 3. Xử lý tính năng Kéo và Thả công việc (Drag and Drop) giữa các cột
-let draggedTaskId: number | null = null; // Biến toàn cục lưu trữ ID của công việc đang được kéo đi
+// --------------------------------------------------------------------------
+// 3. XỬ LÝ TÍNH NĂNG KÉO THẢ ĐA NỀN TẢNG (PC & MOBILE) BẰNG POINTER EVENTS API
+// Nguyên lý hoạt động tương tự Angular CDK Drag & Drop nhưng viết bằng Vanilla TS thuần
+// --------------------------------------------------------------------------
 
-// Sự kiện 3.1: Khi người dùng bắt đầu nhấn giữ chuột kéo một thẻ công việc đi (dragstart)
-kanbanBoard.addEventListener("dragstart", (e: DragEvent) => {
-    // Tìm thẻ .task-card gần nhất chứa phần tử đang kéo
-    const target = (e.target as HTMLElement).closest(".task-card") as HTMLElement;
-    if (target) {
-        draggedTaskId = Number(target.getAttribute("data-id")); // Lưu lại ID của công việc đang được kéo
-        target.classList.add("dragging"); // Thêm class "dragging" để đổi style mờ thẻ đi
-    }
-});
+let isDragging = false;
+let draggedCardEl: HTMLElement | null = null;
+let ghostEl: HTMLElement | null = null;
+let draggedTaskId: number | null = null;
+let startX = 0;
+let startY = 0;
+let offsetX = 0;
+let offsetY = 0;
 
-// Sự kiện 3.2: Khi người dùng nhả chuột dừng kéo thẻ công việc (dragend)
-kanbanBoard.addEventListener("dragend", (e: DragEvent) => {
-    const target = (e.target as HTMLElement).closest(".task-card") as HTMLElement;
-    if (target) {
-        target.classList.remove("dragging"); // Xóa bỏ class "dragging" trả lại trạng thái hiển thị rõ nét
-    }
-    // Dọn dẹp, xóa bỏ class hiệu ứng viền nét đứt ở tất cả các cột
-    document.querySelectorAll(".task-list").forEach(list => list.classList.remove("drag-over"));
-});
-
-// Lấy danh sách tất cả các cột có class .column trên giao diện
-const columns = document.querySelectorAll<HTMLElement>(".column");
-
-// Bảng ánh xạ ID của danh sách với Enum trạng thái tương ứng của công việc
+// Bảng ánh xạ ID của container danh sách với Enum trạng thái tương ứng
 const statusMap: Record<string, TaskStatus> = {
     "colTodo": TaskStatus.TODO,
     "colDoing": TaskStatus.IN_PROGRESS,
     "colDone": TaskStatus.DONE
 };
 
-// Đăng ký các sự kiện Drag & Drop trên từng Cột để đảm bảo nhận diện chính xác kể cả khi cuộn trang
-columns.forEach(column => {
-    const list = column.querySelector(".task-list") as HTMLElement;
-    if (!list) return;
+// 3.1. Sự kiện khi nhấn chuột hoặc chạm ngón tay vào thẻ công việc (pointerdown)
+kanbanBoard.addEventListener("pointerdown", (e: PointerEvent) => {
+    // Chỉ xử lý nút chuột trái (button = 0) hoặc cảm ứng màn hình
+    if (e.button !== undefined && e.button !== 0) return;
 
-    // Sự kiện 3.3: Khi rê thẻ đang kéo bay ngang qua cột (dragover)
-    column.addEventListener("dragover", (e: DragEvent) => {
-        e.preventDefault(); // Ngăn chặn hành động mặc định của trình duyệt để cho phép thả (drop) thẻ vào đây
-        list.classList.add("drag-over"); // Hiển thị màu nền nhạt và viền nét đứt màu tím
-    });
+    const target = (e.target as HTMLElement).closest(".task-card") as HTMLElement;
+    if (!target) return;
 
-    // Sự kiện 3.4: Khi rê thẻ đang kéo ra khỏi phạm vi của cột (dragleave)
-    column.addEventListener("dragleave", (e: DragEvent) => {
-        // Chỉ xóa class viền nét đứt nếu con trỏ chuột thực sự đã đi ra ngoài hoàn toàn khỏi khối cột
-        if (!column.contains(e.relatedTarget as Node)) {
-            list.classList.remove("drag-over");
-        }
-    });
+    // Không kích hoạt kéo nếu bấm trúng nút xóa
+    if ((e.target as HTMLElement).classList.contains("btn-delete-task")) return;
 
-    // Sự kiện 3.5: Khi nhả chuột thả thẻ công việc rơi vào cột (drop)
-    column.addEventListener("drop", (e: DragEvent) => {
-        e.preventDefault();
-        list.classList.remove("drag-over"); // Xóa bỏ viền nét đứt
-        if (draggedTaskId !== null) {
-            const newStatus = statusMap[list.id]; // Tìm kiếm xem cột thả vào có trạng thái tương ứng là gì
-            if (newStatus) {
-                board.moveTask(draggedTaskId, newStatus); // Chuyển đổi trạng thái mới cho công việc trong mảng & localStorage
-                renderBoard(); // Vẽ lại giao diện cột với vị trí công việc mới
-            }
-            draggedTaskId = null; // Reset biến ID công việc đang kéo về null
-        }
-    });
+    draggedCardEl = target;
+    draggedTaskId = Number(target.getAttribute("data-id"));
+    startX = e.clientX;
+    startY = e.clientY;
+
+    const rect = target.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+
+    // Đăng ký các listener sự kiện di chuyển và nhả chuột/tay trên phạm vi window
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
 });
+
+// 3.2. Sự kiện khi rê chuột hoặc di chuyển ngón tay (pointermove)
+function onPointerMove(e: PointerEvent) {
+    if (!draggedCardEl) return;
+
+    const moveX = Math.abs(e.clientX - startX);
+    const moveY = Math.abs(e.clientY - startY);
+
+    // Chỉ bắt đầu chế độ kéo khi ngón tay/con trỏ đã di chuyển vượt quá 5px (tránh nhầm với click)
+    if (!isDragging && (moveX > 5 || moveY > 5)) {
+        isDragging = true;
+
+        // Thêm class dragging làm mờ thẻ gốc nằm lại ở cột
+        draggedCardEl.classList.add("dragging");
+
+        // Tạo thẻ nổi (Ghost Card) bay theo ngón tay/chuột (Phong cách Angular CDK)
+        ghostEl = draggedCardEl.cloneNode(true) as HTMLElement;
+        ghostEl.classList.remove("dragging");
+        ghostEl.classList.add("ghost-card");
+
+        const rect = draggedCardEl.getBoundingClientRect();
+        ghostEl.style.width = `${rect.width}px`;
+        ghostEl.style.left = `${e.clientX - offsetX}px`;
+        ghostEl.style.top = `${e.clientY - offsetY}px`;
+
+        document.body.appendChild(ghostEl);
+    }
+
+    if (isDragging && ghostEl) {
+        // Cập nhật vị trí thẻ nổi bay theo tọa độ con trỏ/ngón tay hiện tại
+        ghostEl.style.left = `${e.clientX - offsetX}px`;
+        ghostEl.style.top = `${e.clientY - offsetY}px`;
+
+        // Tìm phần tử nằm dưới vị trí ngón tay/chuột hiện tại (Ghost card tự động bỏ qua nhờ pointer-events: none)
+        const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
+        
+        // Dọn dẹp viền nét đứt màu tím ở tất cả các cột
+        document.querySelectorAll(".task-list").forEach(list => list.classList.remove("drag-over"));
+
+        if (elementBelow) {
+            const listContainer = elementBelow.closest(".task-list") as HTMLElement;
+            if (listContainer) {
+                listContainer.classList.add("drag-over");
+            }
+        }
+    }
+}
+
+// 3.3. Sự kiện khi thả chuột hoặc nhấc ngón tay ra (pointerup / pointercancel)
+function onPointerUp(e: PointerEvent) {
+    // Hủy bỏ các listener theo dõi di chuyển
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
+    window.removeEventListener("pointercancel", onPointerUp);
+
+    // Xóa thẻ nổi ghost-card khỏi màn hình
+    if (ghostEl) {
+        ghostEl.remove();
+        ghostEl = null;
+    }
+
+    // Trả lại hiển thị bình thường cho thẻ gốc
+    if (draggedCardEl) {
+        draggedCardEl.classList.remove("dragging");
+    }
+
+    // Xóa viền nét đứt ở tất cả các cột
+    document.querySelectorAll(".task-list").forEach(list => list.classList.remove("drag-over"));
+
+    // Nếu đang trong chế độ kéo, tiến hành tính toán cột thả vào và cập nhật trạng thái
+    if (isDragging && draggedTaskId !== null) {
+        const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
+        if (elementBelow) {
+            const listContainer = elementBelow.closest(".task-list") as HTMLElement;
+            if (listContainer) {
+                const newStatus = statusMap[listContainer.id];
+                if (newStatus) {
+                    board.moveTask(draggedTaskId, newStatus);
+                    renderBoard(); // Vẽ lại giao diện cột mới và cập nhật bong bóng đếm
+                }
+            }
+        }
+    }
+
+    // Reset tất cả các biến theo dõi
+    isDragging = false;
+    draggedCardEl = null;
+    draggedTaskId = null;
+}

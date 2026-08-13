@@ -136,6 +136,7 @@ h1 {
     cursor: grab;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
     user-select: none;
+    touch-action: pan-y; /* Cho phép cuộn dọc bình thường trên di động */
 }
 
 .task-card:active {
@@ -143,9 +144,21 @@ h1 {
 }
 
 .task-card.dragging {
-    opacity: 0.5;
-    transform: scale(0.98);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    opacity: 0.35;
+    transform: scale(0.96);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* Thẻ nổi hiển thị dưới con trỏ/ngón tay khi kéo (Ghost Card theo kiểu Angular CDK) */
+.ghost-card {
+    position: fixed !important;
+    pointer-events: none !important;
+    z-index: 99999 !important;
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25) !important;
+    transform: rotate(2.5deg) scale(1.03) !important;
+    opacity: 0.95 !important;
+    margin: 0 !important;
+    cursor: grabbing !important;
 }
 
 .column {
