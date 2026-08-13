@@ -180,7 +180,7 @@ kanbanBoard.addEventListener("click", (e) => {
 });
 // --------------------------------------------------------------------------
 // 3. XỬ LÝ TÍNH NĂNG KÉO THẢ ĐA NỀN TẢNG (PC & MOBILE) BẰNG POINTER EVENTS API
-// Tối ưu hóa phân biệt giữa thao tác Cuộn trang dọc và thao tác Kéo thẻ công việc
+// Hỗ trợ Tự Động Cuộn Màn Hình (Auto-Scroll) khi giữ kéo thẻ tới mép trên/dưới
 // --------------------------------------------------------------------------
 let isDragging = false;
 let isTouchHandle = false;
@@ -191,6 +191,10 @@ let startX = 0;
 let startY = 0;
 let offsetX = 0;
 let offsetY = 0;
+// Biến quản lý vòng lặp Tự động cuộn trang (Auto-Scroll)
+let autoScrollFrameId = null;
+let currentPointerX = 0;
+let currentPointerY = 0;
 // Bảng ánh xạ ID của container danh sách với Enum trạng thái tương ứng
 const statusMap = {
     "colTodo": TaskStatus.TODO,
@@ -214,6 +218,8 @@ kanbanBoard.addEventListener("pointerdown", (e) => {
     draggedTaskId = Number(target.getAttribute("data-id"));
     startX = e.clientX;
     startY = e.clientY;
+    currentPointerX = e.clientX;
+    currentPointerY = e.clientY;
     const rect = target.getBoundingClientRect();
     offsetX = e.clientX - rect.left;
     offsetY = e.clientY - rect.top;
@@ -226,6 +232,8 @@ kanbanBoard.addEventListener("pointerdown", (e) => {
 function onPointerMove(e) {
     if (!draggedCardEl)
         return;
+    currentPointerX = e.clientX;
+    currentPointerY = e.clientY;
     const moveX = Math.abs(e.clientX - startX);
     const moveY = Math.abs(e.clientY - startY);
     // Trên thiết bị di động: Nếu người dùng không chạm vào nút tay cầm drag-handle 
@@ -250,21 +258,67 @@ function onPointerMove(e) {
         ghostEl.style.left = `${e.clientX - offsetX}px`;
         ghostEl.style.top = `${e.clientY - offsetY}px`;
         document.body.appendChild(ghostEl);
+        // Kích hoạt vòng lặp kiểm tra Tự động cuộn trang (Auto-Scroll) khi giữ kéo thẻ
+        startAutoScrollLoop();
     }
     if (isDragging && ghostEl) {
         // Cập nhật vị trí thẻ nổi bay theo tọa độ con trỏ/ngón tay hiện tại
         ghostEl.style.left = `${e.clientX - offsetX}px`;
         ghostEl.style.top = `${e.clientY - offsetY}px`;
         // Tìm phần tử nằm dưới vị trí ngón tay/chuột hiện tại
-        const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
-        // Dọn dẹp viền nét đứt màu tím ở tất cả các cột
-        document.querySelectorAll(".task-list").forEach(list => list.classList.remove("drag-over"));
-        if (elementBelow) {
-            const listContainer = elementBelow.closest(".task-list");
-            if (listContainer) {
-                listContainer.classList.add("drag-over");
-            }
+        updateHoveredDropTarget(e.clientX, e.clientY);
+    }
+}
+// Cập nhật highlight cột bị rê qua
+function updateHoveredDropTarget(clientX, clientY) {
+    const elementBelow = document.elementFromPoint(clientX, clientY);
+    document.querySelectorAll(".task-list").forEach(list => list.classList.remove("drag-over"));
+    if (elementBelow) {
+        const listContainer = elementBelow.closest(".task-list");
+        if (listContainer) {
+            listContainer.classList.add("drag-over");
         }
+    }
+}
+// --------------------------------------------------------------------------
+// TỰ ĐỘNG CUỘN TRANG (AUTO-SCROLL) KHI GIỮ KÉO THẺ ĐẾN MÉP MÀN HÌNH
+// --------------------------------------------------------------------------
+function startAutoScrollLoop() {
+    if (!autoScrollFrameId) {
+        autoScrollLoop();
+    }
+}
+function autoScrollLoop() {
+    if (!isDragging) {
+        stopAutoScroll();
+        return;
+    }
+    const threshold = 90; // Khoảng cách 90px từ mép trên/dưới màn hình
+    const viewportHeight = window.innerHeight;
+    let scrollSpeed = 0;
+    if (currentPointerY < threshold) {
+        // Rê gần mép trên màn hình -> Cuộn lên trên
+        scrollSpeed = -Math.max(6, Math.round((threshold - currentPointerY) / 2.5));
+    }
+    else if (currentPointerY > viewportHeight - threshold) {
+        // Rê gần mép dưới màn hình -> Cuộn xuống dưới
+        scrollSpeed = Math.max(6, Math.round((currentPointerY - (viewportHeight - threshold)) / 2.5));
+    }
+    if (scrollSpeed !== 0) {
+        window.scrollBy(0, scrollSpeed);
+        // Đảm bảo thẻ nổi giữ nguyên vị trí theo tọa độ màn hình khi trang cuộn
+        if (ghostEl) {
+            ghostEl.style.top = `${currentPointerY - offsetY}px`;
+        }
+        // Cập nhật cột thả vào khi trang đang cuộn
+        updateHoveredDropTarget(currentPointerX, currentPointerY);
+    }
+    autoScrollFrameId = requestAnimationFrame(autoScrollLoop);
+}
+function stopAutoScroll() {
+    if (autoScrollFrameId) {
+        cancelAnimationFrame(autoScrollFrameId);
+        autoScrollFrameId = null;
     }
 }
 // 3.3. Sự kiện khi thả chuột hoặc nhấc ngón tay ra (pointerup / pointercancel)
@@ -286,6 +340,7 @@ function onPointerUp(e) {
 }
 // Hàm hủy theo dõi pointer và reset giao diện
 function cancelPointerTracking() {
+    stopAutoScroll();
     window.removeEventListener("pointermove", onPointerMove);
     window.removeEventListener("pointerup", onPointerUp);
     window.removeEventListener("pointercancel", onPointerUp);
