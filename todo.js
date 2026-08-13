@@ -247,6 +247,10 @@ function onPointerMove(e) {
     // Chỉ bắt đầu chế độ kéo khi ngón tay/con trỏ đã di chuyển vượt quá 8px
     if (!isDragging && (moveX > 8 || moveY > 8)) {
         isDragging = true;
+        // Xóa sạch các lựa chọn bôi đen chữ vô tình do trình duyệt di động tự tạo
+        if (window.getSelection) {
+            window.getSelection()?.removeAllRanges();
+        }
         // Thêm class dragging làm mờ thẻ gốc nằm lại ở cột
         draggedCardEl.classList.add("dragging");
         // Tạo thẻ nổi (Ghost Card) bay theo ngón tay/chuột (Phong cách Angular CDK)

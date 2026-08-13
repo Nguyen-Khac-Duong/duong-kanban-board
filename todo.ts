@@ -305,6 +305,11 @@ function onPointerMove(e: PointerEvent) {
     if (!isDragging && (moveX > 8 || moveY > 8)) {
         isDragging = true;
 
+        // Xóa sạch các lựa chọn bôi đen chữ vô tình do trình duyệt di động tự tạo
+        if (window.getSelection) {
+            window.getSelection()?.removeAllRanges();
+        }
+
         // Thêm class dragging làm mờ thẻ gốc nằm lại ở cột
         draggedCardEl.classList.add("dragging");
 

@@ -3,6 +3,19 @@
     padding: 0;
     box-sizing: border-box;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    -webkit-tap-highlight-color: transparent; /* Loại bỏ vệt nhấp nháy xám/xanh trên iOS */
+}
+
+/* Vùng Bảng Kanban cấm chọn bôi đen chữ và cấm menu pop-up di động khi chạm/kéo thẻ */
+.kanban-board,
+.kanban-board *,
+.ghost-card,
+.ghost-card * {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important; /* Vô hiệu hóa popup bôi đen chữ của iOS Safari */
 }
 
 body {
