@@ -181,7 +181,10 @@ kanbanBoard.addEventListener("dragstart", (e) => {
     const target = e.target.closest(".task-card");
     if (target) {
         draggedTaskId = Number(target.getAttribute("data-id")); // Lưu lại ID của công việc đang được kéo
-        target.classList.add("dragging"); // Thêm class "dragging" để đổi style mờ thẻ đi
+        // Sử dụng setTimeout để tránh làm mất touch target trên thiết bị di động
+        setTimeout(() => {
+            target.classList.add("dragging"); // Thêm class "dragging" để đổi style mờ thẻ đi
+        }, 0);
     }
 });
 // Sự kiện 3.2: Khi người dùng nhả chuột dừng kéo thẻ công việc (dragend)
