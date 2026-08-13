@@ -137,10 +137,7 @@ h1 {
     transition: transform 0.15s ease, box-shadow 0.15s ease;
     user-select: none;
     -webkit-user-select: none;
-    /* Ngăn bôi đen chữ trên iOS/Android */
     -webkit-touch-callout: none;
-    /* Ngăn hiện menu khi nhấn giữ trên điện thoại */
-    touch-action: none; /* Chặn hành vi cuộn mặc định của trình duyệt để kéo thả hoạt động */
 }
 
 .task-card:active {
